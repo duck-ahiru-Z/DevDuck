@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 )
@@ -21,11 +23,19 @@ func main() {
 
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+
+	var stderr bytes.Buffer
+
+	cmd.Stderr = io.MultiWriter(
+		os.Stderr,
+		&stderr,
+	)
 
 	err := cmd.Run()
 
 	if err != nil {
-		fmt.Println("DevDuck: command failed")
+		fmt.Println("\n DevDuck detected an error")
+		fmt.Println("----- captured stderr -----")
+		fmt.Println(stderr.String())
 	}
 }
