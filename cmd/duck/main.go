@@ -6,6 +6,8 @@ import (
 	"io"
 	"os"
 	"os/exec"
+
+	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/python"
 )
 
 func main() {
@@ -35,7 +37,19 @@ func main() {
 
 	if err != nil {
 		fmt.Println("\n DevDuck detected an error")
-		fmt.Println("----- captured stderr -----")
-		fmt.Println(stderr.String())
+
+		errorInfo, ok := python.Parse(stderr.String())
+
+		if !ok {
+			fmt.Println("エラーを解析できませんでした。")
+			return
+		}
+
+		fmt.Println()
+		fmt.Println("Source :", errorInfo.Source)
+		fmt.Println("Type   :", errorInfo.Kind)
+		fmt.Println("Message:", errorInfo.Message)
+		fmt.Println("File   :", errorInfo.File)
+		fmt.Println("Line   :", errorInfo.Line)
 	}
 }
