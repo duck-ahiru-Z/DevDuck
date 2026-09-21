@@ -36,7 +36,7 @@ func main() {
 	err := cmd.Run()
 
 	if err != nil {
-		fmt.Println("\n DevDuck detected an error")
+		fmt.Println("\nDevDuck detected an error")
 
 		errorInfo, ok := python.Parse(stderr.String())
 
@@ -51,5 +51,25 @@ func main() {
 		fmt.Println("Message:", errorInfo.Message)
 		fmt.Println("File   :", errorInfo.File)
 		fmt.Println("Line   :", errorInfo.Line)
+
+		explainer := python.NewExplainer()
+
+		explanation, explained := explainer.Explain(errorInfo)
+
+		if !explained {
+			fmt.Println()
+			fmt.Println("このエラーはまだローカル解説に対応していません。")
+			return
+		}
+
+		fmt.Println()
+		fmt.Println("Explanation")
+		fmt.Println(explanation.Summary)
+
+		if len(explanation.Hints) > 0 {
+			fmt.Println()
+			fmt.Println("Hint:")
+			fmt.Println(explanation.Hints[0])
+		}
 	}
 }
