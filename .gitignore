@@ -1,0 +1,45 @@
+# Build artifacts
+/duck
+/duck.exe
+/bin/
+/dist/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Local DevDuck data
+*.db
+logs/
+.devduck/
+
+# Test scratch file
+/test.py
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.exe
+bin/
+dist/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# DevDuck local data
+*.db
+logs/
+.devduck/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+/test.py
