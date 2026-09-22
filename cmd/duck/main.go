@@ -8,6 +8,8 @@ import (
 	"os/exec"
 
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/python"
+	"github.com/duck-ahiru-Z/DevDuck/internal/teaching"
+	"github.com/duck-ahiru-Z/DevDuck/internal/ui/terminal"
 )
 
 func main() {
@@ -66,10 +68,8 @@ func main() {
 		fmt.Println("Explanation")
 		fmt.Println(explanation.Summary)
 
-		if len(explanation.Hints) > 0 {
-			fmt.Println()
-			fmt.Println("Hint:")
-			fmt.Println(explanation.Hints[0])
-		}
+		session := teaching.NewSession(explanation)
+
+		terminal.RunHintSession(session)
 	}
 }
