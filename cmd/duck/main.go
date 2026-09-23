@@ -8,6 +8,7 @@ import (
 	"os/exec"
 
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/python"
+	"github.com/duck-ahiru-Z/DevDuck/internal/cli"
 	"github.com/duck-ahiru-Z/DevDuck/internal/teaching"
 	"github.com/duck-ahiru-Z/DevDuck/internal/ui/terminal"
 )
@@ -15,13 +16,19 @@ import (
 func main() {
 	fmt.Println("DevDuck")
 
-	if len(os.Args) < 2 {
-		fmt.Println("使い方: duck <command> [args...]")
+	options, err := cli.Parse(os.Args[1:])
+
+	if err != nil {
+		fmt.Println("DevDuck:", err)
+		fmt.Println()
+		fmt.Println(
+			"使い方: duck [--level beginner|intermediate|advanced] <command> [args...]",
+		)
 		return
 	}
 
-	command := os.Args[1]
-	args := os.Args[2:]
+	command := options.Command
+	args := options.Args
 
 	cmd := exec.Command(command, args...)
 
@@ -35,10 +42,10 @@ func main() {
 		&stderr,
 	)
 
-	err := cmd.Run()
+	err = cmd.Run()
 
 	if err != nil {
-		fmt.Println("\nDevDuck detected an error")
+		fmt.Println("\n🦆 DevDuck detected an error")
 
 		errorInfo, ok := python.Parse(stderr.String())
 
@@ -60,15 +67,24 @@ func main() {
 
 		if !explained {
 			fmt.Println()
-			fmt.Println("このエラーはまだローカル解説に対応していません。")
+			fmt.Println(
+				"このエラーはまだローカル解説に対応していません。",
+			)
 			return
 		}
 
-		fmt.Println()
-		fmt.Println("Explanation")
-		fmt.Println(explanation.Summary)
+		policy := teaching.PolicyForLevel(options.Level)
 
-		session := teaching.NewSession(explanation)
+		if policy.ShowSummary {
+			fmt.Println()
+			fmt.Println("🦆 Explanation")
+			fmt.Println(explanation.Summary)
+		}
+
+		session := teaching.NewSession(
+			explanation,
+			policy,
+		)
 
 		terminal.RunHintSession(session)
 	}

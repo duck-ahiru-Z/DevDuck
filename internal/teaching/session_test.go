@@ -15,8 +15,10 @@ func TestSessionReturnsHintsInOrder(t *testing.T) {
 		},
 	}
 
-	session := NewSession(explanation)
-
+	session := NewSession(
+		explanation,
+		PolicyForLevel(Beginner),
+	)
 	first, ok := session.NextHint()
 
 	if !ok {

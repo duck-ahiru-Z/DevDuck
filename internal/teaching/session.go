@@ -4,16 +4,26 @@ import "github.com/duck-ahiru-Z/DevDuck/internal/model"
 
 type Session struct {
 	explanation model.Explanation
+	policy      Policy
 	hintIndex   int
 }
 
-func NewSession(explanation model.Explanation) *Session {
+func NewSession(
+	explanation model.Explanation,
+	policy Policy,
+) *Session {
 	return &Session{
 		explanation: explanation,
+		policy:      policy,
 		hintIndex:   0,
 	}
 }
+
 func (s *Session) HasNextHint() bool {
+	if s.hintIndex >= s.policy.MaxHints {
+		return false
+	}
+
 	return s.hintIndex < len(s.explanation.Hints)
 }
 
