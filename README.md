@@ -22,3 +22,4 @@ Currently working on:
 
 ```bash
 duck python main.py
+あ
