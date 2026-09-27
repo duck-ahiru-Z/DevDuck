@@ -9,6 +9,7 @@ type Redactor struct {
 func New() *Redactor {
 	return &Redactor{
 		patterns: []*regexp.Regexp{
+			regexp.MustCompile(`(?i)https?://[^\s/@:]+:[^\s/@]+@`),
 			regexp.MustCompile(
 				`(?i)(api[_-]?key|token|password|secret)\s*[:=]\s*["']?[^\s"']+`,
 			),

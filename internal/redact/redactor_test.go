@@ -38,3 +38,10 @@ func TestSanitizeBearerToken(t *testing.T) {
 		)
 	}
 }
+
+func TestSanitizeCredentialURL(t *testing.T) {
+	result := New().Sanitize("fatal: unable to access https://username:token@example.com/repo.git")
+	if strings.Contains(result, "username:token") || strings.Contains(result, "token@example.com") {
+		t.Fatalf("credential leaked: %s", result)
+	}
+}
