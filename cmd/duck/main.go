@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapter"
+	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/docker"
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/gcc"
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/git"
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/javac"
@@ -72,6 +73,7 @@ func run() int {
 	registry := adapter.NewRegistry(
 		python.NewAdapter(),
 		gcc.NewAdapter(),
+		docker.NewAdapter(),
 		javac.NewAdapter(),
 		git.NewAdapter(),
 	)
