@@ -1,0 +1,11 @@
+Main.java:3: error: cannot find symbol
+    missing();
+    ^
+  symbol:   method missing()
+  location: class Main
+Main.java:8: error: cannot find symbol
+    System.out.println(count);
+                      ^
+  symbol:   variable count
+  location: class Main
+2 errors

@@ -31,13 +31,13 @@ func (e *Explainer) Explain(err model.ErrorInfo) (model.Explanation, bool) {
 		return model.Explanation{}, false
 	}
 	if err.Message == "cannot find symbol" {
-		if strings.Contains(err.Raw, "symbol:   variable") {
+		if strings.Contains(err.Detail, "symbol:   variable") {
 			return explanation("変数が見つかりません。", "変数名のスペルと宣言場所を確認してみよう。", "その宣言が現在のスコープから見えるか考えてみよう."), true
 		}
-		if strings.Contains(err.Raw, "symbol:   method") {
+		if strings.Contains(err.Detail, "symbol:   method") {
 			return explanation("メソッドが見つかりません。", "メソッド名と引数を確認してみよう。", "対象の型にそのメソッドが定義されているか考えてみよう."), true
 		}
-		if strings.Contains(err.Raw, "symbol:   class") {
+		if strings.Contains(err.Detail, "symbol:   class") {
 			return explanation("クラスが見つかりません。", "クラス名とimportを確認してみよう。", "必要な依存関係がclasspathにあるか考えてみよう."), true
 		}
 	}

@@ -3,6 +3,7 @@ package javac
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/duck-ahiru-Z/DevDuck/internal/model"
@@ -30,5 +31,20 @@ func TestExplainKnownDiagnostics(t *testing.T) {
 func TestUnknownDiagnosticFallsBack(t *testing.T) {
 	if _, ok := NewExplainer().Explain(model.ErrorInfo{Source: "javac", Kind: "CompileError", Message: "new javac diagnostic"}); ok {
 		t.Fatal("expected fallback")
+	}
+}
+
+func TestCannotFindSymbolUsesPrimaryDetail(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "symbol_scope.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, ok := Parse(string(data))
+	if !ok {
+		t.Fatal("expected parse")
+	}
+	explanation, ok := NewExplainer().Explain(info)
+	if !ok || !strings.Contains(explanation.Summary, "メソッド") {
+		t.Fatalf("explanation=%#v detail=%q", explanation, info.Detail)
 	}
 }

@@ -8,4 +8,5 @@ type ErrorInfo struct {
 	Line         int
 	Raw          string
 	SkipTeaching bool
+	Detail       string
 }
