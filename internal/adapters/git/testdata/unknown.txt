@@ -1,0 +1,1 @@
+fatal: some future git diagnostic that DevDuck does not know yet

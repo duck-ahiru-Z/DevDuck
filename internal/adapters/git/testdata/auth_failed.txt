@@ -1,0 +1,1 @@
+fatal: Authentication failed for 'https://example.com/repo.git/'

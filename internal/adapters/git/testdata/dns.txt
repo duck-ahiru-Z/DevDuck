@@ -1,0 +1,1 @@
+fatal: unable to access 'https://github.com/example/repo.git/': Could not resolve host: github.com

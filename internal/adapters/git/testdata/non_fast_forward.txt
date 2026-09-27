@@ -1,0 +1,4 @@
+To github.com:example/repo.git
+ ! [rejected]        main -> main (non-fast-forward)
+error: failed to push some refs to 'github.com:example/repo.git'
+hint: Updates were rejected because the remote contains work that you do not have locally.

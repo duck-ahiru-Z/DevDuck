@@ -1,0 +1,2 @@
+error: src refspec feature does not match any
+error: failed to push some refs to 'origin'
