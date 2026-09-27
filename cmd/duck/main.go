@@ -8,6 +8,7 @@ import (
 
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapter"
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/gcc"
+	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/javac"
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/python"
 	duckai "github.com/duck-ahiru-Z/DevDuck/internal/ai"
 	"github.com/duck-ahiru-Z/DevDuck/internal/ai/factory"
@@ -65,6 +66,7 @@ func run() int {
 	registry := adapter.NewRegistry(
 		python.NewAdapter(),
 		gcc.NewAdapter(),
+		javac.NewAdapter(),
 	)
 
 	selectedAdapter, adapterFound := registry.Find(
