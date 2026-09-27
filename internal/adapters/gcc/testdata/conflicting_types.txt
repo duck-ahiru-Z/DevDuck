@@ -1,0 +1,1 @@
+main.c:7:5: error: conflicting types for 'run'

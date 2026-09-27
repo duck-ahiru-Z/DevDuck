@@ -1,0 +1,2 @@
+main.c:3:5: error: expected ';' before 'return'
+main.c:7:4: error: 'value' undeclared (first use in this function)

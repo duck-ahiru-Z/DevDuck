@@ -1,0 +1,2 @@
+main.c:10:3: warning: implicit declaration of function 'printf'
+main.c:10:3: error: implicit declaration of function 'missing'

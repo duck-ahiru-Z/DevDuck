@@ -1,0 +1,4 @@
+main.c:5:12: error: expected ';' before 'return'
+main.c:8:5: error: 'count' undeclared (first use in this function)
+main.c:10:3: warning: implicit declaration of function 'printf'
+main.c:12:7: note: each undeclared identifier is reported only once

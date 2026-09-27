@@ -1,0 +1,1 @@
+main.c:6:9: error: incompatible types when assigning to type 'int' from type 'char *'

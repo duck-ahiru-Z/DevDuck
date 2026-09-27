@@ -1,0 +1,3 @@
+/usr/bin/ld: other.o: in function `main':
+other.c:2: multiple definition of `main'; main.o:main.c:2: first defined here
+collect2: error: ld returned 1 exit status
