@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "app.py", line 3, in <module>
+    value = "age: " + 3
+TypeError: can only concatenate str (not "int") to str

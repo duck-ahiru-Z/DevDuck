@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "app.py", line 2, in <module>
+    open("secret.txt")
+PermissionError: [Errno 13] Permission denied: 'secret.txt'

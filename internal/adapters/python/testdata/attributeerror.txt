@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "app.py", line 2, in <module>
+    value.append(1)
+AttributeError: 'tuple' object has no attribute 'append'

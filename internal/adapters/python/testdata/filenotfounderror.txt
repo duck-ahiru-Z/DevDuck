@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "app.py", line 2, in <module>
+    open("missing.txt")
+FileNotFoundError: [Errno 2] No such file or directory: 'missing.txt'

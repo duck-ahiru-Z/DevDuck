@@ -1,0 +1,4 @@
+  File "test.py", line 3
+    print("hello"
+                 ^
+SyntaxError: '(' was never closed

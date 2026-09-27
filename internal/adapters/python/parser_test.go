@@ -1,53 +1,60 @@
 package python
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
-func TestParseZeroDivisionError(t *testing.T) {
-	stderr := `Traceback (most recent call last):
-  File "C:\Users\iwaku\pro\devduck\test.py", line 2, in <module>
-    x = 10 / 0
-        ~~~^~~
-ZeroDivisionError: division by zero
-`
-	info, ok := Parse(stderr)
+func TestParseFixtures(t *testing.T) {
+	cases := []struct {
+		name, kind, message, file string
+		line                      int
+	}{
+		{"zerodivisionerror", "ZeroDivisionError", "division by zero", "app.py", 4},
+		{"nameerror", "NameError", "name 'total' is not defined", "app.py", 2},
+		{"typeerror", "TypeError", `can only concatenate str (not "int") to str`, "app.py", 3},
+		{"indexerror", "IndexError", "list index out of range", "app.py", 2},
+		{"keyerror", "KeyError", "'name'", "app.py", 2},
+		{"attributeerror", "AttributeError", "'tuple' object has no attribute 'append'", "app.py", 2},
+		{"modulenotfounderror", "ModuleNotFoundError", "No module named 'missing_package'", "app.py", 1},
+		{"filenotfounderror", "FileNotFoundError", "[Errno 2] No such file or directory: 'missing.txt'", "app.py", 2},
+		{"valueerror", "ValueError", "invalid literal for int() with base 10: 'abc'", "app.py", 2},
+		{"runtimeerror", "RuntimeError", "worker stopped", "app.py", 2},
+		{"syntaxerror", "SyntaxError", "'(' was never closed", "test.py", 3},
+		{"indentationerror", "IndentationError", "expected an indented block after 'if' statement on line 2", "test.py", 3},
+		{"importerror", "ImportError", "cannot import name 'missing' from 'package'", "app.py", 1},
+		{"unboundlocalerror", "UnboundLocalError", "cannot access local variable 'value' where it is not associated with a value", "app.py", 3},
+		{"recursionerror", "RecursionError", "maximum recursion depth exceeded", "app.py", 2},
+		{"permissionerror", "PermissionError", "[Errno 13] Permission denied: 'secret.txt'", "app.py", 2},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			data, err := os.ReadFile(filepath.Join("testdata", tc.name+".txt"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			info, ok := Parse(string(data))
+			if !ok {
+				t.Fatal("expected fixture to be parsed")
+			}
+			if info.Kind != tc.kind || info.Message != tc.message || info.File != tc.file || info.Line != tc.line {
+				t.Fatalf("got kind=%q message=%q file=%q line=%d", info.Kind, info.Message, info.File, info.Line)
+			}
+		})
+	}
+}
 
+func TestParseChainedExceptionUsesFinalError(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "chained.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	info, ok := Parse(string(data))
 	if !ok {
-		t.Fatal("expected traceback to be parsed")
+		t.Fatal("expected chained fixture to be parsed")
 	}
-
-	if info.Source != "python" {
-		t.Errorf("expected Source python, got %q", info.Source)
+	if info.Kind != "RuntimeError" || info.Message != "loading failed" || info.File != "app.py" || info.Line != 6 {
+		t.Fatalf("got %#v", info)
 	}
-
-	if info.Kind != "ZeroDivisionError" {
-		t.Errorf(
-			"expected Kind ZeroDivisionError, got %q",
-			info.Kind,
-		)
-	}
-
-	if info.Message != "division by zero" {
-		t.Errorf(
-			"expected Message division by zero, got %q",
-			info.Message,
-		)
-	}
-
-	expectedFile := `C:\Users\iwaku\pro\devduck\test.py`
-
-	if info.File != expectedFile {
-		t.Errorf(
-			"expected File %q, got %q",
-			expectedFile,
-			info.File,
-		)
-	}
-
-	if info.Line != 2 {
-		t.Errorf(
-			"expected Line 2, got %d",
-			info.Line,
-		)
-	}
-
 }

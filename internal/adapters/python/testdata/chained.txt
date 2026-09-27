@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "app.py", line 3, in load
+    int(value)
+ValueError: invalid literal for int() with base 10: 'x'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "app.py", line 6, in <module>
+    load()
+RuntimeError: loading failed
