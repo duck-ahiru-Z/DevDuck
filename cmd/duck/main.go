@@ -13,6 +13,7 @@ import (
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/python"
 	duckai "github.com/duck-ahiru-Z/DevDuck/internal/ai"
 	"github.com/duck-ahiru-Z/DevDuck/internal/ai/factory"
+	"github.com/duck-ahiru-Z/DevDuck/internal/buildinfo"
 	"github.com/duck-ahiru-Z/DevDuck/internal/cache"
 	"github.com/duck-ahiru-Z/DevDuck/internal/cli"
 	"github.com/duck-ahiru-Z/DevDuck/internal/config"
@@ -30,6 +31,10 @@ func main() {
 }
 
 func run() int {
+	if len(os.Args) >= 2 && (os.Args[1] == "version" || os.Args[1] == "--version") {
+		fmt.Println(buildinfo.String())
+		return 0
+	}
 	if len(os.Args) >= 2 && os.Args[1] == "auth" {
 		return handleAuth(os.Args[2:])
 	}
