@@ -19,6 +19,7 @@ import (
 	"github.com/duck-ahiru-Z/DevDuck/internal/cli"
 	"github.com/duck-ahiru-Z/DevDuck/internal/config"
 	"github.com/duck-ahiru-Z/DevDuck/internal/credential"
+	"github.com/duck-ahiru-Z/DevDuck/internal/doctor"
 	"github.com/duck-ahiru-Z/DevDuck/internal/model"
 	"github.com/duck-ahiru-Z/DevDuck/internal/redact"
 	"github.com/duck-ahiru-Z/DevDuck/internal/runner"
@@ -35,6 +36,9 @@ func run() int {
 	if len(os.Args) >= 2 && (os.Args[1] == "version" || os.Args[1] == "--version") {
 		fmt.Println(buildinfo.String())
 		return 0
+	}
+	if len(os.Args) >= 2 && os.Args[1] == "doctor" {
+		return doctor.Run(os.Stdout)
 	}
 	if len(os.Args) >= 2 && os.Args[1] == "auth" {
 		return handleAuth(os.Args[2:])
