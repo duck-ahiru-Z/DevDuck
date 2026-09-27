@@ -1,0 +1,7 @@
+Main.java:3: error: ';' expected
+    int value = 1
+                ^
+Main.java:8: error: cannot find symbol
+    System.out.println(name);
+                      ^
+2 errors

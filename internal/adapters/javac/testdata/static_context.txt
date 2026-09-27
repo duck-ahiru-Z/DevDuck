@@ -1,0 +1,4 @@
+Main.java:5: error: non-static method run() cannot be referenced from a static context
+    run();
+    ^
+1 error

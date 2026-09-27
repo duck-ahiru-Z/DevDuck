@@ -1,0 +1,4 @@
+C:\Users\name\project\Main.java:5: error: ';' expected
+    System.out.println("hello")
+                              ^
+1 error

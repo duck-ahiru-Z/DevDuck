@@ -1,0 +1,5 @@
+Main.java:3: error: cannot access Secret
+    Secret value;
+    ^
+  bad class file: Secret.class
+1 error

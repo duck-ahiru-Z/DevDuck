@@ -1,0 +1,4 @@
+Main.java:1: error: class PublicApp is public, should be declared in a file named PublicApp.java
+public class PublicApp {}
+       ^
+1 error

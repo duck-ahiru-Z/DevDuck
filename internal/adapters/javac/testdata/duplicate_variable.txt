@@ -1,0 +1,4 @@
+Main.java:6: error: variable count is already defined in method run()
+    int count = 2;
+        ^
+1 error

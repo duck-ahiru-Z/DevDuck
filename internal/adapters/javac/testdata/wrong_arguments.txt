@@ -1,0 +1,7 @@
+Main.java:8: error: method add in class Calc cannot be applied to given types;
+    calc.add(1);
+        ^
+  required: int,int
+  found:    int
+  reason: actual and formal argument lists differ in length
+1 error

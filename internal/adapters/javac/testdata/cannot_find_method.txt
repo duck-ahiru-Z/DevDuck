@@ -1,0 +1,6 @@
+Main.java:9: error: cannot find symbol
+    user.missing();
+        ^
+  symbol:   method missing()
+  location: variable user of type User
+1 error

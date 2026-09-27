@@ -1,0 +1,4 @@
+Main.java:1: error: package missing.lib does not exist
+import missing.lib.Helper;
+                  ^
+1 error

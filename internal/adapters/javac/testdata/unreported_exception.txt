@@ -1,0 +1,4 @@
+Main.java:7: error: unreported exception IOException; must be caught or declared to be thrown
+    Files.readString(path);
+                    ^
+1 error
