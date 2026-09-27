@@ -1,6 +1,10 @@
 package python
 
-import "github.com/duck-ahiru-Z/DevDuck/internal/model"
+import (
+	"regexp"
+
+	"github.com/duck-ahiru-Z/DevDuck/internal/model"
+)
 
 type Explainer struct{}
 
@@ -87,6 +91,42 @@ var explanations = map[string]model.Explanation{
 			"タブとスペースが混ざっていないか確認してみよう。",
 		},
 	},
+	"ImportError": {
+		Summary: "モジュールから指定した名前を読み込めませんでした。",
+		Hints:   []string{"名前のスペルと、モジュールが公開している名前を確認してみよう。", "実行しているPython環境を確認してみよう。"},
+	},
+	"RuntimeError": {
+		Summary: "実行中に一般的な問題が発生しました。",
+		Hints:   []string{"エラーメッセージと直前の処理を確認してみよう。", "どの条件でこの処理に到達するか考えてみよう。"},
+	},
+	"ValueError": {
+		Summary: "値そのものが、処理で期待される形式や範囲に合っていません。",
+		Hints:   []string{"入力値や変換対象の内容を確認してみよう。", "どの値がこの処理に渡っているか確認してみよう。"},
+	},
+	"UnboundLocalError": {
+		Summary: "関数内のローカル変数を、値が設定される前に使おうとしています。",
+		Hints:   []string{"その変数がすべての分岐で代入されるか確認してみよう。", "関数の外側の変数との名前の重なりも確認してみよう。"},
+	},
+	"RecursionError": {
+		Summary: "関数の呼び出しが深くなりすぎました。",
+		Hints:   []string{"再帰呼び出しが終了条件に到達するか確認してみよう。", "同じ引数で呼び出し続けていないか確認してみよう。"},
+	},
+	"PermissionError": {
+		Summary: "ファイルやリソースへアクセスする権限がありません。",
+		Hints:   []string{"対象のパスとアクセスモードを確認してみよう。", "実行ユーザーに必要な権限があるか確認してみよう。"},
+	},
+}
+
+type messageRule struct {
+	kind    string
+	pattern *regexp.Regexp
+	result  model.Explanation
+}
+
+var messageRules = []messageRule{
+	{kind: "TypeError", pattern: regexp.MustCompile(`unsupported operand type`), result: model.Explanation{Summary: "演算子が、その値の型の組み合わせに対応していません。", Hints: []string{"演算子の左右の値の型を確認してみよう。", "暗黙の型変換を期待していないか考えてみよう。"}}},
+	{kind: "TypeError", pattern: regexp.MustCompile(`not subscriptable`), result: model.Explanation{Summary: "添字で要素を取り出せない型を、添字付きで使おうとしています。", Hints: []string{"添字を使っている値の型を確認してみよう。", "その値が本当にシーケンスや辞書か考えてみよう。"}}},
+	{kind: "KeyError", pattern: regexp.MustCompile(`^'[^']+'$`), result: model.Explanation{Summary: "辞書に指定したキーが存在しません。", Hints: []string{"実際のキー一覧と指定値を比較してみよう。", "キーが作られる条件も確認してみよう。"}}},
 }
 
 func (e *Explainer) Explain(err model.ErrorInfo) (model.Explanation, bool) {
@@ -94,11 +134,17 @@ func (e *Explainer) Explain(err model.ErrorInfo) (model.Explanation, bool) {
 		return model.Explanation{}, false
 	}
 
-	explanations, ok := explanations[err.Kind]
+	for _, rule := range messageRules {
+		if rule.kind == err.Kind && rule.pattern.MatchString(err.Message) {
+			return rule.result, true
+		}
+	}
+
+	explanation, ok := explanations[err.Kind]
 
 	if !ok {
 		return model.Explanation{}, false
 	}
 
-	return explanations, true
+	return explanation, true
 }
