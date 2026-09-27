@@ -58,3 +58,30 @@ func TestParseChainedExceptionUsesFinalError(t *testing.T) {
 		t.Fatalf("got %#v", info)
 	}
 }
+
+func TestParseCustomException(t *testing.T) {
+	for _, name := range []string{"customproblem", "qualifiedcustomproblem"} {
+		t.Run(name, func(t *testing.T) {
+			data, err := os.ReadFile(filepath.Join("testdata", name+".txt"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			info, ok := Parse(string(data))
+			if !ok || info.Kind != "CustomProblem" || info.Message != "something happened" || info.File != "app.py" || info.Line != 4 {
+				t.Fatalf("got %#v, ok=%v", info, ok)
+			}
+			if _, explained := NewExplainer().Explain(info); explained {
+				t.Fatal("custom exception must use fallback")
+			}
+		})
+	}
+}
+
+func TestParseControlFlowWithoutMessage(t *testing.T) {
+	for _, kind := range []string{"KeyboardInterrupt", "SystemExit", "GeneratorExit"} {
+		info, ok := Parse("Traceback (most recent call last):\n" + kind + "\n")
+		if !ok || info.Kind != kind || !IsControlFlow(info.Kind) {
+			t.Fatalf("kind=%s info=%#v ok=%v", kind, info, ok)
+		}
+	}
+}

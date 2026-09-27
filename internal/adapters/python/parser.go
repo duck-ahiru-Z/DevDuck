@@ -12,11 +12,19 @@ var filePattern = regexp.MustCompile(
 )
 
 var errorPattern = regexp.MustCompile(
-	`(?m)^([A-Za-z_][A-Za-z0-9_]*(?:Error|Exception))(?::\s*(.*))?$`,
+	`(?m)^((?:[A-Za-z_][A-Za-z0-9_]*\.)*[A-Za-z_][A-Za-z0-9_]*)(?::\s*(.*))$`,
 )
+
+var controlPattern = regexp.MustCompile(`(?m)^(KeyboardInterrupt|SystemExit|GeneratorExit)$`)
 
 func Parse(stderr string) (model.ErrorInfo, bool) {
 	errorMatches := errorPattern.FindAllStringSubmatch(stderr, -1)
+	if len(errorMatches) == 0 {
+		controlMatches := controlPattern.FindAllStringSubmatch(stderr, -1)
+		if len(controlMatches) > 0 {
+			return model.ErrorInfo{Source: "python", Kind: controlMatches[len(controlMatches)-1][1], Raw: stderr}, true
+		}
+	}
 
 	if len(errorMatches) == 0 {
 		return model.ErrorInfo{}, false
@@ -26,7 +34,7 @@ func Parse(stderr string) (model.ErrorInfo, bool) {
 
 	info := model.ErrorInfo{
 		Source: "python",
-		Kind:   lastError[1],
+		Kind:   unqualifiedKind(lastError[1]),
 		Raw:    stderr,
 	}
 
@@ -49,4 +57,22 @@ func Parse(stderr string) (model.ErrorInfo, bool) {
 	}
 
 	return info, true
+}
+
+func unqualifiedKind(name string) string {
+	for index := len(name) - 1; index >= 0; index-- {
+		if name[index] == '.' {
+			return name[index+1:]
+		}
+	}
+	return name
+}
+
+func IsControlFlow(kind string) bool {
+	switch kind {
+	case "KeyboardInterrupt", "SystemExit", "GeneratorExit":
+		return true
+	default:
+		return false
+	}
 }
