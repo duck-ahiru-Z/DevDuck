@@ -1,12 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapter"
@@ -19,26 +16,31 @@ import (
 	"github.com/duck-ahiru-Z/DevDuck/internal/credential"
 	"github.com/duck-ahiru-Z/DevDuck/internal/model"
 	"github.com/duck-ahiru-Z/DevDuck/internal/redact"
+	"github.com/duck-ahiru-Z/DevDuck/internal/runner"
 	"github.com/duck-ahiru-Z/DevDuck/internal/teaching"
 	"github.com/duck-ahiru-Z/DevDuck/internal/ui/terminal"
 	"golang.org/x/term"
 )
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	if len(os.Args) >= 2 && os.Args[1] == "auth" {
 		handleAuth(os.Args[2:])
-		return
+		return 0
 	}
 	if len(os.Args) >= 2 && os.Args[1] == "config" {
 		handleConfig(os.Args[2:])
-		return
+		return 0
 	}
 
 	cfg, err := config.Load()
 
 	if err != nil {
 		fmt.Println("設定ファイルの読み込みに失敗しました:", err)
-		return
+		return 1
 	}
 
 	options, err := cli.Parse(os.Args[1:])
@@ -49,7 +51,7 @@ func main() {
 		fmt.Println(
 			"使い方: duck [--level beginner|intermediate|advanced] <command> [args...]",
 		)
-		return
+		return 1
 	}
 
 	level := cfg.Level
@@ -70,25 +72,9 @@ func main() {
 		args,
 	)
 
-	cmd := exec.Command(
-		command,
-		args...,
-	)
-
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-
-	var stderr bytes.Buffer
-
-	cmd.Stderr = io.MultiWriter(
-		os.Stderr,
-		&stderr,
-	)
-
-	err = cmd.Run()
-
-	if err == nil {
-		return
+	result := runner.Run(command, args, os.Stdin, os.Stdout, os.Stderr)
+	if result.ExitCode == 0 {
+		return 0
 	}
 
 	fmt.Println()
@@ -97,17 +83,17 @@ func main() {
 	if !adapterFound {
 		fmt.Println()
 		fmt.Println("このコマンドにはまだ対応していません。")
-		return
+		return result.ExitCode
 	}
 
 	errorInfo, ok := selectedAdapter.Parse(
-		stderr.String(),
+		result.Stderr,
 	)
 
 	if !ok {
 		fmt.Println()
 		fmt.Println("エラーを解析できませんでした。")
-		return
+		return result.ExitCode
 	}
 
 	fmt.Println()
@@ -116,6 +102,9 @@ func main() {
 	fmt.Println("Message:", errorInfo.Message)
 	fmt.Println("File   :", errorInfo.File)
 	fmt.Println("Line   :", errorInfo.Line)
+	if python.IsControlFlow(errorInfo.Kind) {
+		return result.ExitCode
+	}
 
 	explanation, explained := selectedAdapter.Explain(
 		errorInfo,
@@ -145,7 +134,7 @@ func main() {
 				"AIによる解説を取得できませんでした:",
 				err,
 			)
-			return
+			return result.ExitCode
 		}
 	}
 
@@ -165,6 +154,7 @@ func main() {
 	)
 
 	terminal.RunHintSession(session)
+	return result.ExitCode
 }
 
 func explainWithAI(
