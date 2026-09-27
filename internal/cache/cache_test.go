@@ -30,3 +30,11 @@ func TestKeyChangesWithInputs(t *testing.T) {
 		t.Fatal("cache key did not include all inputs")
 	}
 }
+
+func TestKeyRedactsSecretsBeforeHashing(t *testing.T) {
+	withSecret := model.ErrorInfo{Raw: "token=secret-value"}
+	redacted := model.ErrorInfo{Raw: "[REDACTED]"}
+	if Key(withSecret, teaching.Beginner, "") != Key(redacted, teaching.Beginner, "") {
+		t.Fatal("cache key was based on an unredacted secret")
+	}
+}

@@ -7,8 +7,10 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/duck-ahiru-Z/DevDuck/internal/model"
+	"github.com/duck-ahiru-Z/DevDuck/internal/redact"
 	"github.com/duck-ahiru-Z/DevDuck/internal/teaching"
 )
 
@@ -24,6 +26,10 @@ type entry struct {
 func New(path string) *Store { return &Store{path: path} }
 
 func Key(err model.ErrorInfo, level teaching.Level, contextText string) string {
+	redactor := redact.New()
+	err.Raw = normalize(redactor.Sanitize(err.Raw))
+	err.Message = normalize(redactor.Sanitize(err.Message))
+	contextText = normalize(redactor.Sanitize(contextText))
 	payload := struct {
 		Error   model.ErrorInfo
 		Level   teaching.Level
@@ -33,6 +39,8 @@ func Key(err model.ErrorInfo, level teaching.Level, contextText string) string {
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])
 }
+
+func normalize(value string) string { return strings.Join(strings.Fields(value), " ") }
 
 func (s *Store) Get(key string) (model.Explanation, bool, error) {
 	entries, err := s.read()

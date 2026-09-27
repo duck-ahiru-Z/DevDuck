@@ -6,11 +6,14 @@ import (
 
 	"github.com/duck-ahiru-Z/DevDuck/internal/ai"
 	"github.com/duck-ahiru-Z/DevDuck/internal/ai/providers/gemini"
+	"github.com/duck-ahiru-Z/DevDuck/internal/credential"
 )
 
 // NewProviderFromEnv creates the configured provider without exposing provider
 // construction details to the command layer.
-func NewProviderFromEnv() (ai.Provider, error) {
+const credentialService = "DevDuck"
+
+func NewProviderFromEnv(stores ...credential.Store) (ai.Provider, error) {
 	name := os.Getenv("DEVDUCK_AI_PROVIDER")
 	if name == "" {
 		name = "gemini"
@@ -18,7 +21,16 @@ func NewProviderFromEnv() (ai.Provider, error) {
 
 	switch name {
 	case "gemini":
-		apiKey := os.Getenv("GEMINI_API_KEY")
+		var apiKey string
+		if len(stores) > 0 {
+			stored, err := stores[0].Get(credentialService, "gemini")
+			if err == nil {
+				apiKey = stored
+			}
+		}
+		if apiKey == "" {
+			apiKey = os.Getenv("GEMINI_API_KEY")
+		}
 		if apiKey == "" {
 			return nil, fmt.Errorf("GEMINI_API_KEY が設定されていません")
 		}

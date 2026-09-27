@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapter"
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/python"
@@ -15,13 +16,19 @@ import (
 	"github.com/duck-ahiru-Z/DevDuck/internal/cache"
 	"github.com/duck-ahiru-Z/DevDuck/internal/cli"
 	"github.com/duck-ahiru-Z/DevDuck/internal/config"
+	"github.com/duck-ahiru-Z/DevDuck/internal/credential"
 	"github.com/duck-ahiru-Z/DevDuck/internal/model"
 	"github.com/duck-ahiru-Z/DevDuck/internal/redact"
 	"github.com/duck-ahiru-Z/DevDuck/internal/teaching"
 	"github.com/duck-ahiru-Z/DevDuck/internal/ui/terminal"
+	"golang.org/x/term"
 )
 
 func main() {
+	if len(os.Args) >= 2 && os.Args[1] == "auth" {
+		handleAuth(os.Args[2:])
+		return
+	}
 	if len(os.Args) >= 2 && os.Args[1] == "config" {
 		handleConfig(os.Args[2:])
 		return
@@ -164,7 +171,7 @@ func explainWithAI(
 	errorInfo model.ErrorInfo,
 	level teaching.Level,
 ) (model.Explanation, error) {
-	provider, err := factory.NewProviderFromEnv()
+	provider, err := factory.NewProviderFromEnv(credential.NewKeyringStore())
 	if err != nil {
 		return model.Explanation{}, err
 	}
@@ -180,6 +187,57 @@ func explainWithAI(
 		level,
 		"",
 	)
+}
+
+func handleAuth(args []string) {
+	if len(args) == 1 && args[0] == "status" {
+		handleGeminiAuthStatus(credential.NewKeyringStore())
+		return
+	}
+	if len(args) != 2 || args[1] != "gemini" {
+		fmt.Println("使い方: duck auth set|status|delete gemini")
+		return
+	}
+	store := credential.NewKeyringStore()
+	switch args[0] {
+	case "set":
+		fmt.Print("Gemini API key: ")
+		secret, err := term.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Println()
+		if err != nil {
+			fmt.Println("APIキーを読み取れませんでした")
+			return
+		}
+		if strings.TrimSpace(string(secret)) == "" {
+			fmt.Println("APIキーが空です")
+			return
+		}
+		if err := store.Set("DevDuck", "gemini", string(secret)); err != nil {
+			fmt.Println("Credentialを保存できませんでした")
+			return
+		}
+		fmt.Println("Credential saved securely.")
+	case "status":
+		handleGeminiAuthStatus(store)
+	case "delete":
+		err := store.Delete("DevDuck", "gemini")
+		if err != nil && err != credential.ErrNotFound {
+			fmt.Println("Credentialを削除できませんでした")
+			return
+		}
+		fmt.Println("Credential deleted.")
+	default:
+		fmt.Println("使い方: duck auth set|status|delete gemini")
+	}
+}
+
+func handleGeminiAuthStatus(store credential.Store) {
+	_, err := store.Get("DevDuck", "gemini")
+	if err == nil {
+		fmt.Println("gemini: configured")
+		return
+	}
+	fmt.Println("gemini: not configured")
 }
 
 func handleConfig(args []string) {
