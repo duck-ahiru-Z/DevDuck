@@ -77,10 +77,33 @@ func TestParseCustomException(t *testing.T) {
 	}
 }
 
+func TestParseExceptionsWithoutMessages(t *testing.T) {
+	cases := []struct {
+		fixture, kind string
+		line          int
+	}{
+		{"valueerror_nomessage", "ValueError", 2},
+		{"customproblem_nomessage", "CustomProblem", 4},
+		{"qualifiedcustomproblem_nomessage", "CustomProblem", 4},
+	}
+	for _, tc := range cases {
+		t.Run(tc.fixture, func(t *testing.T) {
+			data, err := os.ReadFile(filepath.Join("testdata", tc.fixture+".txt"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			info, ok := Parse(string(data))
+			if !ok || info.Kind != tc.kind || info.Message != "" || info.Line != tc.line {
+				t.Fatalf("got %#v, ok=%v", info, ok)
+			}
+		})
+	}
+}
+
 func TestParseControlFlowWithoutMessage(t *testing.T) {
 	for _, kind := range []string{"KeyboardInterrupt", "SystemExit", "GeneratorExit"} {
 		info, ok := Parse("Traceback (most recent call last):\n" + kind + "\n")
-		if !ok || info.Kind != kind || !IsControlFlow(info.Kind) {
+		if !ok || info.Kind != kind || !IsControlFlow(info.Kind) || !info.SkipTeaching {
 			t.Fatalf("kind=%s info=%#v ok=%v", kind, info, ok)
 		}
 	}

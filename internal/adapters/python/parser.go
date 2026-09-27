@@ -3,6 +3,7 @@ package python
 import (
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/duck-ahiru-Z/DevDuck/internal/model"
 )
@@ -16,13 +17,27 @@ var errorPattern = regexp.MustCompile(
 )
 
 var controlPattern = regexp.MustCompile(`(?m)^(KeyboardInterrupt|SystemExit|GeneratorExit)$`)
+var noMessagePattern = regexp.MustCompile(`^(?:[A-Za-z_][A-Za-z0-9_]*\.)*[A-Za-z_][A-Za-z0-9_]*$`)
 
 func Parse(stderr string) (model.ErrorInfo, bool) {
 	errorMatches := errorPattern.FindAllStringSubmatch(stderr, -1)
 	if len(errorMatches) == 0 {
 		controlMatches := controlPattern.FindAllStringSubmatch(stderr, -1)
 		if len(controlMatches) > 0 {
-			return model.ErrorInfo{Source: "python", Kind: controlMatches[len(controlMatches)-1][1], Raw: stderr}, true
+			return model.ErrorInfo{Source: "python", Kind: controlMatches[len(controlMatches)-1][1], Raw: stderr, SkipTeaching: true}, true
+		}
+		if strings.Contains(stderr, "Traceback") {
+			lines := strings.Split(strings.TrimRight(stderr, "\r\n"), "\n")
+			for index := len(lines) - 1; index >= 0; index-- {
+				candidate := strings.TrimSpace(lines[index])
+				if candidate == "" {
+					continue
+				}
+				if noMessagePattern.MatchString(candidate) {
+					return withLocation(parseInfo(candidate, "", stderr), stderr), true
+				}
+				break
+			}
 		}
 	}
 
@@ -32,16 +47,13 @@ func Parse(stderr string) (model.ErrorInfo, bool) {
 
 	lastError := errorMatches[len(errorMatches)-1]
 
-	info := model.ErrorInfo{
-		Source: "python",
-		Kind:   unqualifiedKind(lastError[1]),
-		Raw:    stderr,
-	}
+	info := parseInfo(lastError[1], lastError[2], stderr)
 
-	if len(lastError) >= 3 {
-		info.Message = lastError[2]
-	}
+	info = withLocation(info, stderr)
+	return info, true
+}
 
+func withLocation(info model.ErrorInfo, stderr string) model.ErrorInfo {
 	fileMatches := filePattern.FindAllStringSubmatch(stderr, -1)
 
 	if len(fileMatches) > 0 {
@@ -56,7 +68,11 @@ func Parse(stderr string) (model.ErrorInfo, bool) {
 		}
 	}
 
-	return info, true
+	return info
+}
+
+func parseInfo(name, message, raw string) model.ErrorInfo {
+	return model.ErrorInfo{Source: "python", Kind: unqualifiedKind(name), Message: message, Raw: raw, SkipTeaching: IsControlFlow(unqualifiedKind(name))}
 }
 
 func unqualifiedKind(name string) string {
