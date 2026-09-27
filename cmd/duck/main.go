@@ -28,12 +28,10 @@ func main() {
 
 func run() int {
 	if len(os.Args) >= 2 && os.Args[1] == "auth" {
-		handleAuth(os.Args[2:])
-		return 0
+		return handleAuth(os.Args[2:])
 	}
 	if len(os.Args) >= 2 && os.Args[1] == "config" {
-		handleConfig(os.Args[2:])
-		return 0
+		return handleConfig(os.Args[2:])
 	}
 
 	cfg, err := config.Load()
@@ -102,7 +100,7 @@ func run() int {
 	fmt.Println("Message:", errorInfo.Message)
 	fmt.Println("File   :", errorInfo.File)
 	fmt.Println("Line   :", errorInfo.Line)
-	if python.IsControlFlow(errorInfo.Kind) {
+	if errorInfo.SkipTeaching {
 		return result.ExitCode
 	}
 
@@ -179,14 +177,14 @@ func explainWithAI(
 	)
 }
 
-func handleAuth(args []string) {
+func handleAuth(args []string) int {
 	if len(args) == 1 && args[0] == "status" {
 		handleGeminiAuthStatus(credential.NewKeyringStore())
-		return
+		return 0
 	}
 	if len(args) != 2 || args[1] != "gemini" {
 		fmt.Println("使い方: duck auth set|status|delete gemini")
-		return
+		return 2
 	}
 	store := credential.NewKeyringStore()
 	switch args[0] {
@@ -196,15 +194,15 @@ func handleAuth(args []string) {
 		fmt.Println()
 		if err != nil {
 			fmt.Println("APIキーを読み取れませんでした")
-			return
+			return 1
 		}
 		if strings.TrimSpace(string(secret)) == "" {
 			fmt.Println("APIキーが空です")
-			return
+			return 2
 		}
 		if err := store.Set("DevDuck", "gemini", string(secret)); err != nil {
 			fmt.Println("Credentialを保存できませんでした")
-			return
+			return 1
 		}
 		fmt.Println("Credential saved securely.")
 	case "status":
@@ -213,12 +211,14 @@ func handleAuth(args []string) {
 		err := store.Delete("DevDuck", "gemini")
 		if err != nil && err != credential.ErrNotFound {
 			fmt.Println("Credentialを削除できませんでした")
-			return
+			return 1
 		}
 		fmt.Println("Credential deleted.")
 	default:
 		fmt.Println("使い方: duck auth set|status|delete gemini")
+		return 2
 	}
+	return 0
 }
 
 func handleGeminiAuthStatus(store credential.Store) {
@@ -230,32 +230,33 @@ func handleGeminiAuthStatus(store credential.Store) {
 	fmt.Println("gemini: not configured")
 }
 
-func handleConfig(args []string) {
+func handleConfig(args []string) int {
 	if len(args) == 0 {
 		fmt.Println("使い方:")
 		fmt.Println("duck config show")
 		fmt.Println(
 			"duck config set level <beginner|intermediate|advanced>",
 		)
-		return
+		return 2
 	}
 
 	switch args[0] {
 	case "show":
-		handleConfigShow()
+		return handleConfigShow()
 
 	case "set":
-		handleConfigSet(args[1:])
+		return handleConfigSet(args[1:])
 
 	default:
 		fmt.Println(
 			"不明なconfigコマンド:",
 			args[0],
 		)
+		return 2
 	}
 }
 
-func handleConfigShow() {
+func handleConfigShow() int {
 	cfg, err := config.Load()
 
 	if err != nil {
@@ -263,7 +264,7 @@ func handleConfigShow() {
 			"設定の読み込みに失敗しました:",
 			err,
 		)
-		return
+		return 1
 	}
 
 	path, err := config.Path()
@@ -273,19 +274,20 @@ func handleConfigShow() {
 			"設定ファイルの場所を取得できません:",
 			err,
 		)
-		return
+		return 1
 	}
 
 	fmt.Println("Level :", cfg.Level)
 	fmt.Println("Config:", path)
+	return 0
 }
 
-func handleConfigSet(args []string) {
+func handleConfigSet(args []string) int {
 	if len(args) != 2 {
 		fmt.Println(
 			"使い方: duck config set level <beginner|intermediate|advanced>",
 		)
-		return
+		return 2
 	}
 
 	key := args[0]
@@ -296,7 +298,7 @@ func handleConfigSet(args []string) {
 			"未対応の設定項目:",
 			key,
 		)
-		return
+		return 2
 	}
 
 	level, err := teaching.ParseLevel(
@@ -307,7 +309,7 @@ func handleConfigSet(args []string) {
 		fmt.Println(
 			"levelは beginner, intermediate, advanced のいずれかを指定してください。",
 		)
-		return
+		return 2
 	}
 
 	cfg, err := config.Load()
@@ -317,7 +319,7 @@ func handleConfigSet(args []string) {
 			"設定の読み込みに失敗しました:",
 			err,
 		)
-		return
+		return 1
 	}
 
 	cfg.Level = level
@@ -327,7 +329,7 @@ func handleConfigSet(args []string) {
 			"設定の保存に失敗しました:",
 			err,
 		)
-		return
+		return 1
 	}
 
 	fmt.Println(
@@ -335,4 +337,5 @@ func handleConfigSet(args []string) {
 		level,
 		"に設定しました。",
 	)
+	return 0
 }
