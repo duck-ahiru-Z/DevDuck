@@ -33,6 +33,14 @@ func Path() (string, error) {
 	), nil
 }
 
+func CachePath() (string, error) {
+	base, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(base, "DevDuck", "explanations.json"), nil
+}
+
 func Load() (Config, error) {
 	path, err := Path()
 

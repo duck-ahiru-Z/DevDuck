@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -9,33 +10,30 @@ import (
 
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapter"
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/python"
+	duckai "github.com/duck-ahiru-Z/DevDuck/internal/ai"
+	"github.com/duck-ahiru-Z/DevDuck/internal/ai/providers/gemini"
+	"github.com/duck-ahiru-Z/DevDuck/internal/cache"
 	"github.com/duck-ahiru-Z/DevDuck/internal/cli"
 	"github.com/duck-ahiru-Z/DevDuck/internal/config"
+	"github.com/duck-ahiru-Z/DevDuck/internal/model"
+	"github.com/duck-ahiru-Z/DevDuck/internal/redact"
 	"github.com/duck-ahiru-Z/DevDuck/internal/teaching"
 	"github.com/duck-ahiru-Z/DevDuck/internal/ui/terminal"
 )
 
 func main() {
-	// config コマンドを処理する。
-	if len(os.Args) >= 2 &&
-		os.Args[1] == "config" {
-
+	if len(os.Args) >= 2 && os.Args[1] == "config" {
 		handleConfig(os.Args[2:])
 		return
 	}
 
-	// 保存済み設定を読み込む。
 	cfg, err := config.Load()
 
 	if err != nil {
-		fmt.Println(
-			"設定ファイルの読み込みに失敗しました:",
-			err,
-		)
+		fmt.Println("設定ファイルの読み込みに失敗しました:", err)
 		return
 	}
 
-	// CLIオプションを解析する。
 	options, err := cli.Parse(os.Args[1:])
 
 	if err != nil {
@@ -47,8 +45,6 @@ func main() {
 		return
 	}
 
-	// --level が指定されていれば、
-	// 保存済み設定より優先する。
 	level := cfg.Level
 
 	if options.LevelSet {
@@ -58,16 +54,19 @@ func main() {
 	command := options.Command
 	args := options.Args
 
-	// 対応Adapterを登録する。
 	registry := adapter.NewRegistry(
 		python.NewAdapter(),
 	)
 
-	selectedAdapter, adapterFound :=
-		registry.Find(command, args)
+	selectedAdapter, adapterFound := registry.Find(
+		command,
+		args,
+	)
 
-	// 指定されたコマンドを実行する。
-	cmd := exec.Command(command, args...)
+	cmd := exec.Command(
+		command,
+		args...,
+	)
 
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
@@ -81,7 +80,6 @@ func main() {
 
 	err = cmd.Run()
 
-	// 成功した場合は追加処理をしない。
 	if err == nil {
 		return
 	}
@@ -91,23 +89,17 @@ func main() {
 
 	if !adapterFound {
 		fmt.Println()
-		fmt.Println(
-			"このコマンドにはまだ対応していません。",
-		)
+		fmt.Println("このコマンドにはまだ対応していません。")
 		return
 	}
 
-	// stderrを解析する。
-	errorInfo, ok :=
-		selectedAdapter.Parse(
-			stderr.String(),
-		)
+	errorInfo, ok := selectedAdapter.Parse(
+		stderr.String(),
+	)
 
 	if !ok {
 		fmt.Println()
-		fmt.Println(
-			"エラーを解析できませんでした。",
-		)
+		fmt.Println("エラーを解析できませんでした。")
 		return
 	}
 
@@ -118,19 +110,41 @@ func main() {
 	fmt.Println("File   :", errorInfo.File)
 	fmt.Println("Line   :", errorInfo.Line)
 
-	// ローカル解説を取得する。
-	explanation, explained :=
-		selectedAdapter.Explain(errorInfo)
+	explanation, explained := selectedAdapter.Explain(
+		errorInfo,
+	)
 
+	// ローカルで説明できない場合だけAIを使う。
 	if !explained {
-		fmt.Println()
-		fmt.Println(
-			"このエラーはまだローカル解説に対応していません。",
-		)
-		return
+		cachePath, cacheErr := config.CachePath()
+		store := (*cache.Store)(nil)
+		if cacheErr == nil {
+			store = cache.New(cachePath)
+			if cached, found, err := store.Get(cache.Key(errorInfo, level, "")); err == nil && found {
+				explanation = cached
+				explained = true
+			}
+		}
+		if !explained {
+			explanation, err = explainWithAI(errorInfo, level)
+			if err == nil && store != nil {
+				_ = store.Put(cache.Key(errorInfo, level, ""), explanation)
+			}
+		}
+
+		if !explained && err != nil {
+			fmt.Println()
+			fmt.Println(
+				"AIによる解説を取得できませんでした:",
+				err,
+			)
+			return
+		}
 	}
 
-	policy := teaching.PolicyForLevel(level)
+	policy := teaching.PolicyForLevel(
+		level,
+	)
 
 	if policy.ShowSummary {
 		fmt.Println()
@@ -146,41 +160,60 @@ func main() {
 	terminal.RunHintSession(session)
 }
 
+func explainWithAI(
+	errorInfo model.ErrorInfo,
+	level teaching.Level,
+) (model.Explanation, error) {
+	apiKey := os.Getenv(
+		"GEMINI_API_KEY",
+	)
+
+	if apiKey == "" {
+		return model.Explanation{},
+			fmt.Errorf(
+				"GEMINI_API_KEY が設定されていません",
+			)
+	}
+
+	modelName := os.Getenv(
+		"DEVDUCK_GEMINI_MODEL",
+	)
+
+	if modelName == "" {
+		modelName = "gemini-3.5-flash-lite"
+	}
+
+	provider := gemini.New(
+		apiKey,
+		modelName,
+	)
+
+	service := duckai.NewService(
+		provider,
+		redact.New(),
+	)
+
+	return service.Explain(
+		context.Background(),
+		errorInfo,
+		level,
+		"",
+	)
+}
+
 func handleConfig(args []string) {
 	if len(args) == 0 {
+		fmt.Println("使い方:")
+		fmt.Println("duck config show")
 		fmt.Println(
-			"使い方: duck config show",
-		)
-		fmt.Println(
-			"       duck config set level <level>",
+			"duck config set level <beginner|intermediate|advanced>",
 		)
 		return
 	}
 
 	switch args[0] {
 	case "show":
-		cfg, err := config.Load()
-
-		if err != nil {
-			fmt.Println(
-				"設定の読み込みに失敗しました:",
-				err,
-			)
-			return
-		}
-
-		path, err := config.Path()
-
-		if err != nil {
-			fmt.Println(
-				"設定ファイルの場所を取得できません:",
-				err,
-			)
-			return
-		}
-
-		fmt.Println("Level :", cfg.Level)
-		fmt.Println("Config:", path)
+		handleConfigShow()
 
 	case "set":
 		handleConfigSet(args[1:])
@@ -193,10 +226,35 @@ func handleConfig(args []string) {
 	}
 }
 
+func handleConfigShow() {
+	cfg, err := config.Load()
+
+	if err != nil {
+		fmt.Println(
+			"設定の読み込みに失敗しました:",
+			err,
+		)
+		return
+	}
+
+	path, err := config.Path()
+
+	if err != nil {
+		fmt.Println(
+			"設定ファイルの場所を取得できません:",
+			err,
+		)
+		return
+	}
+
+	fmt.Println("Level :", cfg.Level)
+	fmt.Println("Config:", path)
+}
+
 func handleConfigSet(args []string) {
 	if len(args) != 2 {
 		fmt.Println(
-			"使い方: duck config set level <level>",
+			"使い方: duck config set level <beginner|intermediate|advanced>",
 		)
 		return
 	}
@@ -212,7 +270,9 @@ func handleConfigSet(args []string) {
 		return
 	}
 
-	level, err := teaching.ParseLevel(value)
+	level, err := teaching.ParseLevel(
+		value,
+	)
 
 	if err != nil {
 		fmt.Println(
