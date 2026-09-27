@@ -11,7 +11,7 @@ import (
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapter"
 	"github.com/duck-ahiru-Z/DevDuck/internal/adapters/python"
 	duckai "github.com/duck-ahiru-Z/DevDuck/internal/ai"
-	"github.com/duck-ahiru-Z/DevDuck/internal/ai/providers/gemini"
+	"github.com/duck-ahiru-Z/DevDuck/internal/ai/factory"
 	"github.com/duck-ahiru-Z/DevDuck/internal/cache"
 	"github.com/duck-ahiru-Z/DevDuck/internal/cli"
 	"github.com/duck-ahiru-Z/DevDuck/internal/config"
@@ -164,29 +164,10 @@ func explainWithAI(
 	errorInfo model.ErrorInfo,
 	level teaching.Level,
 ) (model.Explanation, error) {
-	apiKey := os.Getenv(
-		"GEMINI_API_KEY",
-	)
-
-	if apiKey == "" {
-		return model.Explanation{},
-			fmt.Errorf(
-				"GEMINI_API_KEY が設定されていません",
-			)
+	provider, err := factory.NewProviderFromEnv()
+	if err != nil {
+		return model.Explanation{}, err
 	}
-
-	modelName := os.Getenv(
-		"DEVDUCK_GEMINI_MODEL",
-	)
-
-	if modelName == "" {
-		modelName = "gemini-3.5-flash-lite"
-	}
-
-	provider := gemini.New(
-		apiKey,
-		modelName,
-	)
 
 	service := duckai.NewService(
 		provider,
