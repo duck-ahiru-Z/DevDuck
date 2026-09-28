@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -46,7 +47,9 @@ jobs:
         run: |
           mkdir -p dist
           name="devduck-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }}"
-          go build -trimpath -ldflags "-X github.com/duck-ahiru-Z/DevDuck/internal/buildinfo.Version=${GITHUB_REF_NAME} -X github.com/duck-ahiru-Z/DevDuck/internal/buildinfo.Commit=$(git rev-parse --short HEAD) -X github.com/duck-ahiru-Z/DevDuck/internal/buildinfo.BuildDate=$(date -u +%Y-%m-%d)" -o "dist/$name" ./cmd/duck
+          version="${GITHUB_REF_NAME}"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then version="dev-dry-run"; fi
+          go build -trimpath -ldflags "-X github.com/duck-ahiru-Z/DevDuck/internal/buildinfo.Version=${version} -X github.com/duck-ahiru-Z/DevDuck/internal/buildinfo.Commit=$(git rev-parse --short HEAD) -X github.com/duck-ahiru-Z/DevDuck/internal/buildinfo.BuildDate=$(date -u +%Y-%m-%d)" -o "dist/$name" ./cmd/duck
       - uses: actions/upload-artifact@v4
         with:
           name: devduck-${{ matrix.goos }}-${{ matrix.goarch }}
@@ -62,7 +65,13 @@ jobs:
           merge-multiple: true
       - name: Checksums
         run: sha256sum dist/* > dist/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: devduck-release-dry-run
+          path: dist/*
       - uses: softprops/action-gh-release@v2
+        if: github.event_name == 'push'
         with:
           generate_release_notes: true
           files: dist/*

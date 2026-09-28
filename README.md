@@ -90,4 +90,4 @@ The core runs commands through a common runner and selects an adapter from the r
 
 ## License
 
-This repository does not currently include a `LICENSE` file. The project license is still to be chosen by the maintainers.
+MIT License. See [LICENSE](LICENSE).
