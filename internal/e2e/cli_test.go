@@ -181,6 +181,11 @@ func TestGitCLI(t *testing.T) {
 	if out, err := init.CombinedOutput(); err != nil {
 		t.Fatalf("git init: %v %s", err, out)
 	}
+	configOnly := exec.Command(git, "-C", repo, "config", "--local", "user.useConfigOnly", "true")
+	configOnly.Env = env
+	if out, err := configOnly.CombinedOutput(); err != nil {
+		t.Fatalf("git config user.useConfigOnly: %v %s", err, out)
+	}
 	os.WriteFile(filepath.Join(repo, "file.txt"), []byte("x\n"), 0600)
 	add := exec.Command(git, "-C", repo, "add", "file.txt")
 	add.Env = env
@@ -192,7 +197,9 @@ func TestGitCLI(t *testing.T) {
 		t.Fatalf("pathspec: %#v", got)
 	}
 	got = runCLI(t, binary, env, repo, git, "commit", "-m", "test")
-	if got.code == 0 || (!strings.Contains(got.output, "identity") && !strings.Contains(got.output, "Identity")) {
+	lower := strings.ToLower(got.output)
+	identityDiagnostic := strings.Contains(lower, "author identity unknown") || strings.Contains(lower, "committer identity unknown") || strings.Contains(lower, "please tell me who you are") || strings.Contains(lower, "no email was given") || strings.Contains(lower, "auto-detection is disabled")
+	if got.code == 0 || !identityDiagnostic || !strings.Contains(got.output, "ConfigError") || !strings.Contains(got.output, "Explanation") {
 		t.Fatalf("identity: %#v", got)
 	}
 }
