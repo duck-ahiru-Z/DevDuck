@@ -3,6 +3,7 @@ package docker
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -27,5 +28,13 @@ func TestParseFixtures(t *testing.T) {
 				t.Fatalf("%#v %v", i, ok)
 			}
 		})
+	}
+}
+
+func TestParsePrefersDaemonFailureOverWarning(t *testing.T) {
+	stderr := "WARNING: Error loading config file\nServer:\nfailed to connect to the docker API at npipe://docker_engine"
+	info, ok := Parse(stderr)
+	if !ok || info.Kind != "DaemonError" || !strings.Contains(info.Message, "failed to connect") {
+		t.Fatalf("info=%#v ok=%v", info, ok)
 	}
 }

@@ -9,7 +9,7 @@ func Parse(stderr string) (model.ErrorInfo, bool) {
 	lower := strings.ToLower(stderr)
 	kind := "DockerError"
 	patterns := []struct{ kind, phrase string }{
-		{"DaemonError", "cannot connect to the docker daemon"}, {"DaemonError", "error during connect"},
+		{"DaemonError", "cannot connect to the docker daemon"}, {"DaemonError", "error during connect"}, {"DaemonError", "failed to connect to the docker api"},
 		{"PermissionError", "permission denied while trying to connect"}, {"PermissionError", "got permission denied while trying"},
 		{"RegistryError", "unauthorized: authentication required"}, {"RegistryError", "pull access denied"}, {"RegistryError", "requested access to the resource is denied"},
 		{"ImageError", "unable to find image"}, {"ImageError", "repository does not exist"}, {"ImageError", "manifest unknown"}, {"ImageError", "no matching manifest"},
@@ -33,6 +33,14 @@ func Parse(stderr string) (model.ErrorInfo, bool) {
 }
 
 func specificMessage(stderr, kind string) string {
+	// Prefer the actionable daemon/build failure over incidental client warnings.
+	for _, line := range strings.Split(stderr, "\n") {
+		line = strings.TrimSpace(line)
+		lower := strings.ToLower(line)
+		if strings.Contains(lower, "cannot connect to the docker daemon") || strings.Contains(lower, "failed to connect to the docker api") || strings.Contains(lower, "error during connect") {
+			return line
+		}
+	}
 	for _, line := range strings.Split(stderr, "\n") {
 		line = strings.TrimSpace(line)
 		lower := strings.ToLower(line)
