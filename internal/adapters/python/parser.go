@@ -20,21 +20,22 @@ var controlPattern = regexp.MustCompile(`(?m)^(KeyboardInterrupt|SystemExit|Gene
 var noMessagePattern = regexp.MustCompile(`^(?:[A-Za-z_][A-Za-z0-9_]*\.)*[A-Za-z_][A-Za-z0-9_]*$`)
 
 func Parse(stderr string) (model.ErrorInfo, bool) {
-	errorMatches := errorPattern.FindAllStringSubmatch(stderr, -1)
+	normalized := strings.ReplaceAll(stderr, "\r\n", "\n")
+	errorMatches := errorPattern.FindAllStringSubmatch(normalized, -1)
 	if len(errorMatches) == 0 {
-		controlMatches := controlPattern.FindAllStringSubmatch(stderr, -1)
+		controlMatches := controlPattern.FindAllStringSubmatch(normalized, -1)
 		if len(controlMatches) > 0 {
 			return model.ErrorInfo{Source: "python", Kind: controlMatches[len(controlMatches)-1][1], Raw: stderr, SkipTeaching: true}, true
 		}
-		if strings.Contains(stderr, "Traceback") {
-			lines := strings.Split(strings.TrimRight(stderr, "\r\n"), "\n")
+		if strings.Contains(normalized, "Traceback") {
+			lines := strings.Split(strings.TrimRight(normalized, "\r\n"), "\n")
 			for index := len(lines) - 1; index >= 0; index-- {
 				candidate := strings.TrimSpace(lines[index])
 				if candidate == "" {
 					continue
 				}
 				if noMessagePattern.MatchString(candidate) {
-					return withLocation(parseInfo(candidate, "", stderr), stderr), true
+					return withLocation(parseInfo(candidate, "", stderr), normalized), true
 				}
 				break
 			}
@@ -49,7 +50,7 @@ func Parse(stderr string) (model.ErrorInfo, bool) {
 
 	info := parseInfo(lastError[1], lastError[2], stderr)
 
-	info = withLocation(info, stderr)
+	info = withLocation(info, normalized)
 	return info, true
 }
 

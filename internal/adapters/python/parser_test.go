@@ -108,3 +108,11 @@ func TestParseControlFlowWithoutMessage(t *testing.T) {
 		}
 	}
 }
+
+func TestParseCRLFTraceback(t *testing.T) {
+	stderr := "Traceback (most recent call last):\r\n  File \"app.py\", line 2, in <module>\r\n    x = 1 / 0\r\nZeroDivisionError: division by zero\r\n"
+	info, ok := Parse(stderr)
+	if !ok || info.Message != "division by zero" || info.Line != 2 || info.Raw != stderr {
+		t.Fatalf("info=%#v ok=%v", info, ok)
+	}
+}
