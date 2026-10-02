@@ -4,6 +4,55 @@ Understand the error. Keep the fun.
 
 DevDuck is a developer CLI that helps you understand errors without immediately giving away the solution. It explains what happened and gives progressive hints so you can solve the problem yourself.
 
+## Install
+
+Release binaries are available for Windows, macOS, and Linux. The installers
+use the latest GitHub Release by default and verify its SHA-256 checksum before
+replacing an existing installation. No administrator or root privileges are
+required.
+
+### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/duck-ahiru-Z/DevDuck/main/scripts/install.ps1 | iex
+```
+
+The installer detects Windows amd64 or arm64 and installs `duck.exe` under
+`$env:LOCALAPPDATA\DevDuck\bin`. Open a new PowerShell window after installation.
+If you prefer to inspect the script first, download `scripts/install.ps1` and
+run it locally. You can select a release with `-Version v0.1.0`.
+
+### macOS / Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/duck-ahiru-Z/DevDuck/main/scripts/install.sh | sh
+```
+
+The installer detects Linux amd64/arm64 and macOS amd64/arm64, then installs
+`duck` under `$HOME/.local/bin`. Add that directory to your PATH if the installer
+reports that it is missing. For a version-specific install, set
+`DEVDUCK_VERSION=v0.1.0`; to inspect first, download `scripts/install.sh` and
+run it locally.
+
+You can also download the matching binary and `SHA256SUMS` directly from the
+GitHub Releases page, or install from source:
+
+```bash
+go install github.com/duck-ahiru-Z/DevDuck/cmd/duck@latest
+```
+
+## Quick Start
+
+```bash
+duck python app.py
+duck git status
+duck doctor
+duck config set level beginner
+```
+
+Local explanations work without Gemini. Gemini is an optional fallback; if you
+enable it, the API key is stored in the operating system credential store.
+
 ## Example
 
 ```bash
